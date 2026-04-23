@@ -1987,6 +1987,11 @@ Usage: whilly [OPTIONS] [PLAN_FILE...]
                                     from orphan Stories. --apply: link
                                     assignments + materialise inferred Epics
                                     via the tracker adapter.
+  whilly --doctor                 🆕 Diagnose ghost plans + runtime leftovers
+                                    (orphan workspaces, stale .whilly_state.json,
+                                    leftover tmux sessions). Read-only. Exit 1
+                                    if any findings. Add --no-gh to skip the
+                                    `gh issue view` lookup.
   whilly -h, --help               Show this help
 
 Exit codes (headless mode):
@@ -2071,6 +2076,14 @@ def main(argv: list[str] | None = None) -> int:
         idx = args.index("--ensure-board-statuses")
         names_arg = args[idx + 1] if idx + 1 < len(args) and not args[idx + 1].startswith("-") else None
         return _run_ensure_board_statuses(names_arg)
+
+    if "--doctor" in args:
+        from whilly.doctor import format_report, run_doctor
+
+        check_gh = "--no-gh" not in args
+        report = run_doctor(check_gh=check_gh)
+        print(format_report(report, color=sys.stdout.isatty()))
+        return 1 if report.findings else 0
 
     if "--handoff-list" in args:
         return _run_handoff_list()
